@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Site for FormTrack</title>
+
+    <!-- 
+      IMPORTANT: Intha script ah inga ippadi thaan podanum.
+      Unga real website ku, dashboard la irundhu correct `data-website-id` eduthu maathikonga.
+    -->
+    <script src="http://localhost:3000/tracker.js" data-website-id="685fecb5c15397781175f875" async defer></script>
+
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+          "Segoe UI Symbol";
+        padding: 2em;
+        line-height: 1.6;
+        background-color: #f4f4f9;
+        color: #333;
+      }
+      h1,
+      h2 {
+        color: #111;
+      }
+      form {
+        background: #fff;
+        border: 1px solid #ccc;
+        padding: 1.5em;
+        border-radius: 8px;
+        margin-bottom: 2em;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      input,
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px;
+        margin-bottom: 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      button {
+        padding: 10px 15px;
+        border: none;
+        background-color: #007bff;
+        color: white;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>External Website Simulation</h1>
+      <p>
+        Intha page namma FormTrack app ku velila irukura oru website maathiri.
+        Inga irukura forms ah submit panna, data namma dashboard ku varum.
+      </p>
+
+      <form id="contact-form" name="contactForm">
+        <h2>Contact Us</h2>
+        <label for="name">Name:</label>
+        <input
+          type="text"
+          id="name"
+          name="fullName"
+          placeholder="e.g., John Doe"
+        />
+
+        <label for="email">Email:</label>
+        <input
+          type="email"
+          id="email"
+          name="email_address"
+          placeholder="e.g., your.email@example.com"
+        />
+
+        <label for="message">Message:</label>
+        <textarea id="message" name="message" rows="4"></textarea>
+
+        <button type="submit">Send Message</button>
+      </form>
+
+      <form name="newsletterSignup">
+        <h2>Subscribe to Newsletter</h2>
+        <label for="newsletter_email">Your Email:</label>
+        <input
+          type="email"
+          id="newsletter_email"
+          name="subscriber_email"
+          placeholder="e.g., newsletter@example.com"
+        />
+        <button type="submit">Subscribe</button>
+      </form>
+    </div>
+  </body>
+</html>

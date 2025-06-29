@@ -13,7 +13,14 @@ pnpm dev
 # or
 bun dev
 ```
-
+{
+  "cron": [
+    {
+      "path": "/api/cron/reminders",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}  
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.

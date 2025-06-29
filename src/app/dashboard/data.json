@@ -1,0 +1,93 @@
+[
+  {
+    "id": "lead_001",
+    "name": "Alice Johnson",
+    "email": "alice.j@example.com",
+    "projectName": "Marketing Website",
+    "status": "New",
+    "source": "/contact-us",
+    "submittedAt": "2024-05-21T10:30:00Z"
+  },
+  {
+    "id": "lead_002",
+    "name": "Robert Brown",
+    "email": "rob.brown@example.com",
+    "projectName": "E-commerce Platform",
+    "status": "Contacted",
+    "source": "/get-a-quote",
+    "submittedAt": "2024-05-21T09:15:00Z"
+  },
+  {
+    "id": "lead_003",
+    "name": "Charlie Davis",
+    "email": "charlie.d@example.com",
+    "projectName": "SaaS Product Launch",
+    "status": "Qualified",
+    "source": "/request-demo",
+    "submittedAt": "2024-05-20T18:05:00Z"
+  },
+  {
+    "id": "lead_004",
+    "name": "Diana Miller",
+    "email": "diana.m@example.com",
+    "projectName": "Marketing Website",
+    "status": "New",
+    "source": "/newsletter-signup",
+    "submittedAt": "2024-05-20T16:45:00Z"
+  },
+  {
+    "id": "lead_005",
+    "name": "Ethan Wilson",
+    "email": "ethan.w@example.com",
+    "projectName": "Portfolio Site",
+    "status": "Converted",
+    "source": "/contact",
+    "submittedAt": "2024-05-19T11:20:00Z"
+  },
+  {
+    "id": "lead_006",
+    "name": "Fiona Garcia",
+    "email": "fiona.g@example.com",
+    "projectName": "E-commerce Platform",
+    "status": "Lost",
+    "source": "/product-inquiry",
+    "submittedAt": "2024-05-19T09:00:00Z"
+  },
+  {
+    "id": "lead_007",
+    "name": "George Martinez",
+    "email": "george.m@example.com",
+    "projectName": "SaaS Product Launch",
+    "status": "Contacted",
+    "source": "/request-demo",
+    "submittedAt": "2024-05-18T14:10:00Z"
+  },
+  {
+    "id": "lead_008",
+    "name": "Hannah Rodriguez",
+    "email": "hannah.r@example.com",
+    "projectName": "Marketing Website",
+    "status": "New",
+    "source": "/contact-us",
+    "submittedAt": "2024-05-18T13:55:00Z"
+  },
+  {
+    "id": "lead_009",
+    "name": "Ian Hernandez",
+    "email": "ian.h@example.com",
+    "projectName": "E-commerce Platform",
+    "status": "Qualified",
+    "source": "/get-a-quote",
+    "submittedAt": "2024-05-17T17:00:00Z"
+  },
+  {
+    "id": "lead_010",
+    "name": "Jane Lopez",
+    "email": "jane.l@example.com",
+    "projectName": "SaaS Product Launch",
+    "status": "New",
+    "source": "/pricing",
+    "submittedAt": "2024-05-17T12:30:00Z"
+  }
+]
+
