@@ -42,6 +42,9 @@ export function CreateWebsiteDialog({ open, onOpenChange, onWebsiteCreated, orga
       });
       if (!res.ok) {
         const errorData = await res.json();
+        if (res.status === 403) {
+          throw new Error("You don't have permission to create websites. Please contact your administrator.");
+        }
         throw new Error(errorData.error || "Failed to create website");
       }
       setName("");

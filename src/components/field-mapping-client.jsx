@@ -9,8 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Wand2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { generateFuzzyFieldMappings } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function FieldMappingClient({ websiteId, formIdentifier, detectedFields, standardLeadFields, initialMappings = {} }) {
     const [mappings, setMappings] = useState(initialMappings);
@@ -24,6 +26,25 @@ export default function FieldMappingClient({ websiteId, formIdentifier, detected
     const [pendingField, setPendingField] = useState(null);
 
     const allFields = [...standardLeadFields, ...customFields];
+
+    const handleAutoMap = () => {
+        // Generate fuzzy mappings for unmapped fields
+        const unmappedFields = detectedFields.filter(field => !mappings[field]);
+        const fuzzyMappings = generateFuzzyFieldMappings(unmappedFields, standardLeadFields);
+        
+        // Merge with existing mappings
+        const newMappings = { ...mappings, ...fuzzyMappings };
+        setMappings(newMappings);
+        
+        // Show success message with count of new mappings
+        const newMappingsCount = Object.keys(fuzzyMappings).length;
+        if (newMappingsCount > 0) {
+            toast.success(`Automatically mapped ${newMappingsCount} field${newMappingsCount === 1 ? '' : 's'}`);
+        } else {
+            toast.info("No new fields could be automatically mapped");
+        }
+        setSuccess(false);
+    };
 
     const handleMappingChange = (detectedField, standardFieldId) => {
         if (standardFieldId === "__add_custom__") {
@@ -75,7 +96,7 @@ export default function FieldMappingClient({ websiteId, formIdentifier, detected
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     websiteId,
-                    formIdentifier, // Use the same identifier (formId or formName)
+                    formIdentifier,
                     mappings,
                 }),
             });
@@ -85,8 +106,10 @@ export default function FieldMappingClient({ websiteId, formIdentifier, detected
                 throw new Error(errorData.error || "Failed to save mapping.");
             }
             setSuccess(true);
+            toast.success("Mappings saved successfully!");
         } catch (err) {
             setError(err.message);
+            toast.error(err.message);
         }
         setIsLoading(false);
     };
@@ -121,6 +144,19 @@ export default function FieldMappingClient({ websiteId, formIdentifier, detected
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold">Field Mappings</h2>
+                <Button 
+                    variant="outline" 
+                    onClick={handleAutoMap}
+                    className="flex items-center gap-2"
+                >
+                    <Wand2 className="h-4 w-4" />
+                    Auto-Map Fields
+                </Button>
+            </div>
+
             <div className="space-y-4">
                 {detectedFields.map(field => (
                     <div key={field} className="grid grid-cols-1 md:grid-cols-3 items-center gap-4 p-4 border rounded-lg bg-background">

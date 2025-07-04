@@ -98,6 +98,7 @@ export default async function FieldMappingPage({ params }) {
 
   // Standard fields that users can map to.
   const standardLeadFields = [
+    { id: "fullName", label: "Full Name" },
     { id: "firstName", label: "First Name" },
     { id: "lastName", label: "Last Name" },
     { id: "email", label: "Email" },

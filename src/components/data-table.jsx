@@ -56,16 +56,17 @@ export function DataTable({
   columns, 
   onUpdateData,
   pageCount,
-  state,
+  state = {},
   onPaginationChange,
   onSortingChange,
   onGlobalFilterChange,
-  manualPagination,
-  manualSorting,
-  manualFiltering
+  manualPagination = false,
+  manualSorting = false,
+  manualFiltering = false
 }) {
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] = React.useState({})
+  const [globalFilter, setGlobalFilter] = React.useState("")
 
   const table = useReactTable({
     data,
@@ -75,10 +76,10 @@ export function DataTable({
       ...state,
       columnVisibility,
       rowSelection,
+      globalFilter: state.globalFilter ?? globalFilter,
     },
     meta: {
       updateData: (rowIndex, columnId, value) => {
-        // ... (this logic is fine)
         const leadId = data[rowIndex]?.id;
         if (leadId) {
             onUpdateData?.(leadId, columnId, value)
@@ -89,10 +90,13 @@ export function DataTable({
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
+    onGlobalFilterChange: (value) => {
+      setGlobalFilter(value);
+      onGlobalFilterChange?.(value);
+    },
     // Pass state handlers
-    onPaginationChange: onPaginationChange,
-    onSortingChange: onSortingChange,
-    onGlobalFilterChange: onGlobalFilterChange,
+    onPaginationChange,
+    onSortingChange,
     // Manual flags
     manualPagination,
     manualSorting,
@@ -112,8 +116,8 @@ export function DataTable({
         <div className="flex-1">
           <Input
             placeholder="Filter by name, email, or status..."
-            value={state.globalFilter ?? ""}
-            onChange={(event) => onGlobalFilterChange?.(event.target.value)}
+            value={(state.globalFilter ?? globalFilter) || ""}
+            onChange={(event) => table.setGlobalFilter(event.target.value)}
             className="max-w-sm"
           />
         </div>

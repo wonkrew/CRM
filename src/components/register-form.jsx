@@ -171,6 +171,15 @@ export function RegisterForm({ className, ...props }) {
           )}
         </Button>
       </div>
+      <p className="text-center text-sm text-muted-foreground">
+        Already have an account?{" "}
+        <a
+          href="/login"
+          className="font-semibold leading-6 text-primary hover:underline"
+        >
+          Login
+        </a>
+      </p>
     </form>
   );
 }

@@ -42,12 +42,14 @@ export const config = {
     /*
      * Match all request paths except for the ones starting with:
      * - api/collect (public endpoint for form submissions)
+     * - api/register (public API route for registration)
      * - api/auth (NextAuth routes)
+     * - api/organizations (organizations API route)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - files in the public folder with extensions (.js, .svg, etc.)
      */
-    '/((?!api/collect|api/auth|_next/static|_next/image|favicon.ico|.*\\..*).*)',
+    '/((?!api/collect|api/register|api/auth|api/organizations|_next/static|_next/image|favicon.ico|.*\\..*).*)',
   ],
 }; 

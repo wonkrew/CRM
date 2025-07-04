@@ -34,21 +34,26 @@ export const authOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
+      // If a user object is passed, it's a new sign-in.
       if (user) {
         token.id = user.id;
       }
-      
-      // After login or any JWT update, check for memberships
-      const { db } = await connectToDatabase();
-      const memberships = await db.collection("memberships").find({
-          userId: new ObjectId(token.id)
-      }).toArray();
 
-      token.memberships = memberships.map(m => ({
-          organizationId: m.organizationId.toString(),
-          role: m.role
+      // Always re-fetch memberships from the database to ensure the token is fresh.
+      // This is crucial for scenarios like organization creation.
+      const { db } = await connectToDatabase();
+      const memberships = await db
+        .collection("memberships")
+        .find({
+          userId: new ObjectId(token.id),
+        })
+        .toArray();
+
+      token.memberships = memberships.map((m) => ({
+        organizationId: m.organizationId.toString(),
+        role: m.role,
       }));
-      
+
       return token;
     },
     async session({ session, token }) {

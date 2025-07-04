@@ -11,12 +11,12 @@ import { IconPlus, IconUserShield } from "@tabler/icons-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
-function TeamsPane() {
+function TeamsPane({ organizationId }) {
   const [teams, setTeams] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const fetchTeams = async () => {
     try {
-      const res = await fetch("/api/organizations/teams");
+      const res = await fetch(`/api/organizations/teams?organizationId=${organizationId}`);
       if (!res.ok) throw new Error("Failed to fetch teams");
       setTeams(await res.json());
     } catch (e) {
@@ -25,7 +25,7 @@ function TeamsPane() {
       setLoading(false);
     }
   };
-  React.useEffect(() => { fetchTeams(); }, []);
+  React.useEffect(() => { fetchTeams(); }, [organizationId]);
 
   // create team dialog
   const [open, setOpen] = React.useState(false);
@@ -37,7 +37,7 @@ function TeamsPane() {
       const res = await fetch("/api/organizations/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description }),
+        body: JSON.stringify({ name, description, organizationId }),
       });
       if (!res.ok) throw new Error((await res.json()).error || "Failed");
       toast.success("Team created");
@@ -72,17 +72,17 @@ function TeamsPane() {
   );
 }
 
-function RolesPane() {
+function RolesPane({ organizationId }) {
   const [roles, setRoles] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const fetchRoles = async () => {
     try {
-      const res = await fetch("/api/organizations/roles");
+      const res = await fetch(`/api/organizations/roles?organizationId=${organizationId}`);
       if (!res.ok) throw new Error("Failed to fetch roles");
       setRoles(await res.json());
     } catch (e) { toast.error(e.message);} finally { setLoading(false); }
   };
-  React.useEffect(()=>{ fetchRoles(); }, []);
+  React.useEffect(()=>{ fetchRoles(); }, [organizationId]);
 
   // create role
   const [open, setOpen] = React.useState(false);
@@ -91,7 +91,11 @@ function RolesPane() {
   const handleCreate = async () => {
     if (!name) return toast.error("Name required");
     try {
-      const res = await fetch("/api/organizations/roles", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ name, description }) });
+      const res = await fetch("/api/organizations/roles", { 
+        method:"POST", 
+        headers:{"Content-Type":"application/json"}, 
+        body:JSON.stringify({ name, description, organizationId }) 
+      });
       if (!res.ok) throw new Error((await res.json()).error||"Failed");
       toast.success("Role created");
       setOpen(false); setName(""); setDescription("");
@@ -194,7 +198,7 @@ function RolesPane() {
   );
 }
 
-function AuditPane() {
+function AuditPane({ organizationId }) {
   const [logs, setLogs] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   React.useEffect(()=>{
@@ -219,19 +223,27 @@ function AuditPane() {
   </div>);
 }
 
-export default function OrgSettingsClient() {
+export default function OrgSettingsClient({ organizationId }) {
   return (
-    <Tabs defaultValue="members">
-      <TabsList className="mb-4">
+    <Tabs defaultValue="members" className="space-y-4">
+      <TabsList>
         <TabsTrigger value="members">Members</TabsTrigger>
         <TabsTrigger value="teams">Teams</TabsTrigger>
         <TabsTrigger value="roles">Roles</TabsTrigger>
         <TabsTrigger value="audit">Audit Log</TabsTrigger>
       </TabsList>
-      <TabsContent value="members"><MembersPageClient/></TabsContent>
-      <TabsContent value="teams"><TeamsPane/></TabsContent>
-      <TabsContent value="roles"><RolesPane/></TabsContent>
-      <TabsContent value="audit"><AuditPane/></TabsContent>
+      <TabsContent value="members">
+        <MembersPageClient organizationId={organizationId} />
+      </TabsContent>
+      <TabsContent value="teams">
+        <TeamsPane organizationId={organizationId} />
+      </TabsContent>
+      <TabsContent value="roles">
+        <RolesPane organizationId={organizationId} />
+      </TabsContent>
+      <TabsContent value="audit">
+        <AuditPane organizationId={organizationId} />
+      </TabsContent>
     </Tabs>
   );
 } 

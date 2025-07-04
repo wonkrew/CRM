@@ -15,7 +15,9 @@ export async function POST(req) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return new Response(JSON.stringify({ error: "Invalid email format" }), { status: 400 });
     }
+
     const { db } = await connectToDatabase();
+    
     // Email duplicate check
     const existing = await db.collection("users").findOne({ email });
     if (existing) {

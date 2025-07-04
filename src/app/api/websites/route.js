@@ -2,7 +2,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
-import { hasPermission } from "@/lib/permissions";
+import { RESOURCES, ACTIONS } from "@/lib/constants";
+import { insertAuditLog } from "@/lib/audit";
 
 // GET websites for an organization
 export async function GET(req) {
@@ -47,9 +48,10 @@ export async function POST(req) {
       return new Response(JSON.stringify({ error: "Website name, URL, and organization ID are required" }), { status: 400 });
     }
     
-    // permission check
-    if (!await hasPermission(session.user.id, organizationId, "website", "create")) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+    // Check if user is a member of this organization with appropriate role
+    const membership = session.user.memberships.find(m => m.organizationId === organizationId);
+    if (!membership || (membership.role !== 'admin' && membership.role !== 'owner')) {
+      return new Response(JSON.stringify({ error: "You don't have permission to create websites in this organization" }), { status: 403 });
     }
 
     const { db } = await connectToDatabase();
@@ -61,6 +63,17 @@ export async function POST(req) {
       createdAt: new Date(),
     };
     const result = await db.collection("websites").insertOne(website);
+
+    // Log the website creation
+    await insertAuditLog({
+      organizationId,
+      actorId: session.user.id,
+      action: "create",
+      targetType: "website",
+      targetId: result.insertedId.toString(),
+      details: { name, url }
+    });
+
     return new Response(JSON.stringify({ success: true, id: result.insertedId }), { status: 201 });
   } catch (err) {
     console.error("Error creating website:", err);

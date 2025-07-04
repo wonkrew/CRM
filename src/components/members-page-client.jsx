@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -8,21 +8,38 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DataTable } from "@/components/data-table";
 import { IconPlus, IconUserShield } from "@tabler/icons-react";
+import { Card } from "@/components/ui/card";
+import { RoleSelect } from "./role-select";
+import { checkPermission } from "@/lib/permissions";
 
-export default function MembersPageClient() {
-  const [members, setMembers] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [roles, setRoles] = React.useState([]);
-  const [userRoles, setUserRoles] = React.useState({});
+export default function MembersPageClient({ organizationId }) {
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [roles, setRoles] = useState([]);
+  const [userRoles, setUserRoles] = useState({});
+  const [newMemberEmail, setNewMemberEmail] = useState("");
+  const [canManageMembers, setCanManageMembers] = useState(false);
+
+  useEffect(() => {
+    fetchMembers();
+    fetchRolesAndLinks();
+    checkManagePermission();
+  }, [organizationId]);
+
+  const checkManagePermission = async () => {
+    const hasPermission = await checkPermission("members", "manage");
+    setCanManageMembers(hasPermission);
+  };
 
   const fetchMembers = async () => {
     try {
-      const res = await fetch("/api/organizations/members");
-      if (!res.ok) throw new Error("Failed to fetch members");
-      const data = await res.json();
+      const response = await fetch(`/api/organizations/members?organizationId=${organizationId}`);
+      if (!response.ok) throw new Error("Failed to fetch members");
+      const data = await response.json();
       setMembers(data);
-    } catch (err) {
-      toast.error(err.message);
+    } catch (error) {
+      toast.error("Failed to load members");
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -30,26 +47,20 @@ export default function MembersPageClient() {
 
   const fetchRolesAndLinks = async () => {
     try {
-      const [rRes, lRes] = await Promise.all([
-        fetch("/api/organizations/roles"),
-        fetch("/api/organizations/user-roles"),
+      const [rolesRes, linksRes] = await Promise.all([
+        fetch(`/api/organizations/roles?organizationId=${organizationId}`),
+        fetch(`/api/organizations/user-roles?organizationId=${organizationId}`)
       ]);
-      if (!rRes.ok || !lRes.ok) throw new Error("Failed roles fetch");
-      const rolesData = await rRes.json();
-      setRoles(rolesData);
-      const links = await lRes.json();
-      const map = {};
-      links.forEach((l) => (map[l.userId] = l.roleId));
-      setUserRoles(map);
+      if (!rolesRes.ok || !linksRes.ok) throw new Error("Failed to fetch data");
+      const [roles, links] = await Promise.all([rolesRes.json(), linksRes.json()]);
+      setRoles(roles);
+      const roleMap = {};
+      links.forEach(link => roleMap[link.userId] = link.roleId);
+      setUserRoles(roleMap);
     } catch (e) {
       toast.error(e.message);
     }
   };
-
-  React.useEffect(() => {
-    fetchMembers();
-    fetchRolesAndLinks();
-  }, []);
 
   // DataTable columns
   const columns = React.useMemo(
@@ -117,7 +128,7 @@ export default function MembersPageClient() {
       const res = await fetch("/api/organizations/user-roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, roleId }),
+        body: JSON.stringify({ userId, roleId, organizationId }),
       });
       if (!res.ok) throw new Error((await res.json()).error || "Assign failed");
       toast.success("Role updated");
@@ -127,10 +138,73 @@ export default function MembersPageClient() {
     }
   };
 
+  const handleInviteMember = async (e) => {
+    e.preventDefault();
+    if (!newMemberEmail) return;
+
+    try {
+      const response = await fetch("/api/organizations/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizationId,
+          email: newMemberEmail
+        })
+      });
+
+      if (!response.ok) throw new Error("Failed to invite member");
+      
+      toast.success("Member invited successfully");
+      setNewMemberEmail("");
+      fetchMembers();
+    } catch (error) {
+      toast.error("Failed to invite member");
+      console.error(error);
+    }
+  };
+
+  const handleRemoveMember = async (memberId) => {
+    if (!confirm("Are you sure you want to remove this member?")) return;
+
+    try {
+      const response = await fetch(`/api/organizations/members?organizationId=${organizationId}&memberId=${memberId}`, {
+        method: "DELETE"
+      });
+
+      if (!response.ok) throw new Error("Failed to remove member");
+      
+      toast.success("Member removed successfully");
+      fetchMembers();
+    } catch (error) {
+      toast.error("Failed to remove member");
+      console.error(error);
+    }
+  };
+
+  if (loading) {
+    return <div>Loading members...</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Members</h2>
+        {canManageMembers && (
+          <Card className="p-4">
+            <form onSubmit={handleInviteMember} className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="Enter email to invite"
+                value={newMemberEmail}
+                onChange={(e) => setNewMemberEmail(e.target.value)}
+                className="flex-1"
+              />
+              <Button type="submit" disabled={!newMemberEmail}>
+                Invite Member
+              </Button>
+            </form>
+          </Card>
+        )}
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button size="sm">
@@ -173,6 +247,40 @@ export default function MembersPageClient() {
         onGlobalFilterChange={setGlobalFilter}
       />
       {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
+
+      <div className="grid gap-4">
+        {members.map((member) => (
+          <Card key={member._id} className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium">{member.email}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {member.status === "pending" ? "Pending invitation" : "Active"}
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <RoleSelect
+                  organizationId={organizationId}
+                  value={member.roleId}
+                  onChange={() => fetchMembers()}
+                  assigneeType="user"
+                  assigneeId={member._id}
+                  disabled={!canManageMembers}
+                />
+                {canManageMembers && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleRemoveMember(member._id)}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 } 

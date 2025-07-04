@@ -1,94 +1,129 @@
-import { connectToDatabase } from "@/lib/mongodb";
-import { ObjectId } from "mongodb";
+import { getSession } from "next-auth/react";
+import { ACTIONS } from './constants';
 
-// Built-in role presets
-const BUILT_IN_ROLE_PERMS = {
-  admin: ["*"] , // wildcard
-  editor: [
-    "website:create",
-    "website:update",
-    "website:read",
-    "lead:update",
-    "lead:assign",
-    "lead:followup:create",
-    "lead:read",
-    "mapping:update",
-    "team:read",
-  ],
-  viewer: [
-    "website:read",
-    "lead:read",
-    "team:read",
-  ],
-};
+// Helper function to check a single permission
+export async function checkPermission(resource, action, resourceId = null) {
+  try {
+    const session = await getSession();
+    if (!session) return false;
 
-export async function getEffectivePermissions(userId, organizationId) {
-  const { db } = await connectToDatabase();
-  const perms = new Set();
-
-  // 1. Built-in membership role
-  const membership = await db.collection("memberships").findOne({
-    userId: new ObjectId(userId),
-    organizationId: new ObjectId(organizationId),
-  });
-  if (membership) {
-    const preset = BUILT_IN_ROLE_PERMS[membership.role];
-    if (preset) preset.forEach((p) => perms.add(p));
-  }
-
-  // 2. Direct user_roles
-  const userRoleLinks = await db
-    .collection("user_roles")
-    .find({ orgId: new ObjectId(organizationId), userId: new ObjectId(userId) })
-    .toArray();
-  const roleIds = userRoleLinks.map((r) => r.roleId);
-
-  // 3. Team roles
-  const teamIds = (
-    await db
-      .collection("team_members")
-      .find({ userId: new ObjectId(userId) })
-      .toArray()
-  ).map((tm) => tm.teamId);
-  if (teamIds.length) {
-    const teamRoleLinks = await db
-      .collection("team_roles")
-      .find({ teamId: { $in: teamIds } })
-      .toArray();
-    roleIds.push(...teamRoleLinks.map((r) => r.roleId));
-  }
-
-  // 4. Permissions from those roles
-  if (roleIds.length) {
-    const rolePerms = await db
-      .collection("role_permissions")
-      .find({ roleId: { $in: roleIds } })
-      .toArray();
-    rolePerms.forEach((rp) => {
-      if (rp.allow !== false) perms.add(`${rp.resource}:${rp.action}`);
+    const queryParams = new URLSearchParams({
+      resource,
+      action,
+      ...(resourceId && { resourceId })
     });
+
+    const response = await fetch(`/api/organizations/permissions/check?${queryParams}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to check permission');
+    }
+
+    const { hasPermission } = await response.json();
+    return hasPermission;
+  } catch (error) {
+    console.error('Permission check failed:', error);
+    return false;
   }
-
-  // 5. Explicit permission overrides (permissions collection)
-  const directPerms = await db
-    .collection("permissions")
-    .find({
-      orgId: new ObjectId(organizationId),
-      assigneeType: "user",
-      assigneeId: new ObjectId(userId),
-    })
-    .toArray();
-  directPerms.forEach((p) => {
-    const key = `${p.resource}:${p.action}`;
-    if (p.allow === false) perms.delete(key);
-    else perms.add(key);
-  });
-
-  return perms;
 }
 
-export async function hasPermission(userId, organizationId, resource, action) {
-  const perms = await getEffectivePermissions(userId, organizationId);
-  if (perms.has("*")) return true;
-  return perms.has(`${resource}:${action}`);
+// Helper function to check multiple permissions at once
+export async function checkPermissions(permissionChecks) {
+  try {
+    const session = await getSession();
+    if (!session) return {};
+
+    const response = await fetch('/api/organizations/permissions/check-multiple', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ permissionChecks })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to check permissions');
+  }
+
+    const results = await response.json();
+    return results;
+  } catch (error) {
+    console.error('Multiple permission checks failed:', error);
+    return {};
+  }
+}
+
+// Helper function to get all permissions for the current user
+export async function getUserPermissions() {
+  try {
+    const session = await getSession();
+    if (!session) return new Map();
+
+    const response = await fetch('/api/organizations/permissions/user');
+    if (!response.ok) {
+      throw new Error('Failed to fetch user permissions');
+  }
+
+    const { permissions } = await response.json();
+    
+    // Convert the plain object to a Map of Sets for consistency
+    const permissionMap = new Map();
+    Object.entries(permissions).forEach(([resource, actions]) => {
+      permissionMap.set(resource, new Set(actions));
+    });
+    
+    return permissionMap;
+  } catch (error) {
+    console.error('Failed to fetch user permissions:', error);
+    return new Map();
+  }
+  }
+
+// Helper function to log permission changes
+export async function logPermissionChange(organizationId, userId, action, details) {
+  try {
+    const response = await fetch('/api/organizations/audit-log', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        organizationId,
+        userId,
+        action,
+        details,
+        timestamp: new Date()
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to log permission change');
+    }
+  } catch (error) {
+    console.error('Failed to log permission change:', error);
+  }
+}
+
+// Helper function to check if a user has a specific permission
+export async function hasPermission(resource, action, organizationId) {
+  const session = await getSession();
+  if (!session?.user?.memberships?.length) return false;
+
+  // If organizationId is provided, check if user is a member of that organization
+  if (organizationId) {
+    const isMember = session.user.memberships.some(m => m.organizationId === organizationId);
+    if (!isMember) return false;
+  }
+
+  const permissions = await getUserPermissions();
+  const resourcePermissions = permissions.get(resource);
+  
+  if (!resourcePermissions) return false;
+  
+  return resourcePermissions.has(action) || resourcePermissions.has(ACTIONS.MANAGE);
 } 

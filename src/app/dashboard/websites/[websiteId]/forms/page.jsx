@@ -15,6 +15,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import FormsPageClient from "@/components/forms-page-client";
+import PlatformInstructions from "@/components/PlatformInstructions";
 
 async function getWebsiteDetails(websiteId, userId) {
     const { db } = await connectToDatabase();
@@ -34,7 +35,10 @@ async function getFormsForWebsite(websiteId) {
         { $match: { websiteId: new ObjectId(websiteId) } },
         { 
             $group: { 
-                _id: { formId: "$formId", formName: "$formName" },
+                _id: { 
+                    formId: { $ifNull: ["$formId", "$formName"] },
+                    formName: { $ifNull: ["$formName", "$formId", "Untitled Form"] }
+                },
                 submissionCount: { $sum: 1 },
                 lastSubmitted: { $max: "$submittedAt" }
             } 
@@ -50,7 +54,13 @@ async function getFormsForWebsite(websiteId) {
         },
         { $sort: { lastSubmitted: -1 } }
     ]).toArray();
-    return forms;
+    
+    // Additional processing to ensure clean form names
+    return forms.map(form => ({
+        ...form,
+        formName: form.formId || form.formId || "Untitled Form",
+        formId: form.formId || form.formName || null
+    }));
 }
 
 export default async function WebsiteFormsPage({ params: { websiteId } }) {
@@ -95,6 +105,7 @@ export default async function WebsiteFormsPage({ params: { websiteId } }) {
                             <h1 className="text-2xl font-bold">Discovered Forms</h1>
                             <p className="text-muted-foreground">Forms that have received at least one submission on <span className="font-semibold text-primary">{website.name}</span>.</p>
                         </div>
+                        <PlatformInstructions websiteId={websiteId} />
                         <FormsPageClient websiteId={websiteId} forms={safeForms} />
                     </div>
                 </main>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,7 @@ export default function OnboardingPage() {
 
   const handleCreateOrganization = async (e) => {
     e.preventDefault();
-    if (!orgName) {
+    if (!orgName?.trim()) {
       setError("Organization name is required.");
       return;
     }
@@ -22,23 +23,56 @@ export default function OnboardingPage() {
     setError("");
 
     try {
+      console.log("Creating organization...");
       const res = await fetch("/api/organizations", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: orgName }),
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ 
+          name: orgName.trim() 
+        }),
+        credentials: 'include'
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to create organization");
+      console.log("Response status:", res.status);
+      console.log("Response headers:", Object.fromEntries(res.headers.entries()));
+
+      // First try to get the raw text
+      const rawText = await res.text();
+      console.log("Raw response:", rawText);
+
+      let data;
+      try {
+        // Then try to parse it as JSON
+        data = JSON.parse(rawText);
+        console.log("Parsed response data:", data);
+      } catch (parseError) {
+        console.error("Failed to parse response as JSON:", parseError);
+        throw new Error(`Server returned invalid JSON. Raw response: ${rawText.substring(0, 100)}...`);
       }
 
-      // Redirect to dashboard on success
-      router.push("/dashboard");
+      if (!res.ok) {
+        throw new Error(data?.error || data?.details || "Failed to create organization");
+      }
+
+      toast.success("Organization created successfully!");
+      
+      // Wait a moment for the session to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Hard redirect to ensure session is refreshed
+      window.location.href = "/dashboard";
+      
     } catch (err) {
-      setError(err.message);
+      console.error("Organization creation error:", err);
+      const errorMessage = err.message || "Failed to create organization";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

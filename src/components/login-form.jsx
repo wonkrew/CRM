@@ -115,9 +115,15 @@ export function LoginForm({ className, ...props }) {
           )}
         </Button>
       </div>
-      <div className="text-center text-xs text-muted-foreground rounded bg-muted px-2 py-1 mt-2">
-        <span className="font-mono">Demo: test@test.com / 1234</span>
-      </div>
+      <p className="text-center text-sm text-muted-foreground">
+        Don't have an account?{" "}
+        <a
+          href="/register"
+          className="font-semibold leading-6 text-primary hover:underline"
+        >
+          Register
+        </a>
+      </p>
     </form>
   );
 }

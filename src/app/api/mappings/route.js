@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
-import { hasPermission } from "@/lib/permissions";
+import { DEFAULT_ROLE_PERMISSIONS, ACTIONS } from "@/lib/constants";
 
 export async function POST(req) {
     const session = await getServerSession(authOptions);
@@ -25,7 +25,18 @@ export async function POST(req) {
             return new Response(JSON.stringify({ error: "Website not found" }), { status: 404 });
         }
 
-        if (!await hasPermission(session.user.id, website.organizationId.toString(), "mapping", "update")) {
+        // Server-side permission check (fallback to role-based default permissions)
+        const membership = session.user.memberships?.find(
+          m => m.organizationId === website.organizationId.toString()
+        );
+        let hasPermission = false;
+        if (membership && DEFAULT_ROLE_PERMISSIONS[membership.role]) {
+          const perms = DEFAULT_ROLE_PERMISSIONS[membership.role]["forms"];
+          if (perms && (perms.includes("edit") || perms.includes(ACTIONS.MANAGE))) {
+            hasPermission = true;
+          }
+        }
+        if (!hasPermission) {
             return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
         }
 
